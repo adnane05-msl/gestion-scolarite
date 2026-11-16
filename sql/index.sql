@@ -16,5 +16,10 @@ CREATE INDEX idx_absence_date ON ABSENCE(date_absence);
 -- APRES INDEX
 EXPLAIN SELECT * FROM ETUDIANT WHERE nom = 'Amrani';
 
+-- Plan sans l index (simulation de l etat initial)
+EXPLAIN SELECT * FROM ABSENCE IGNORE INDEX (idx_absence_date)
+WHERE date_absence BETWEEN '2026-10-01' AND '2026-10-03';
+
+-- Plan avec l index
 EXPLAIN SELECT * FROM ABSENCE
-WHERE date_absence BETWEEN '2026-10-01' AND '2026-10-15';cd
+WHERE date_absence BETWEEN '2026-10-01' AND '2026-10-03';
