@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, CheckCheck, ExternalLink } from 'lucide-react'
+import { Check, CheckCheck, ExternalLink, FileCheck } from 'lucide-react'
 import useFetch from '../hooks/useFetch'
 import useToast from '../hooks/useToast'
-import { notificationsService } from '../services/ressources'
+import { absencesService, notificationsService } from '../services/ressources'
 import { messageErreur } from '../services/api'
 import EntetePage from '../components/EntetePage.jsx'
 import Pagination from '../components/Pagination.jsx'
 import { Chargement, Erreur, TableauVide, Badge } from '../components/Etats.jsx'
-import { formatDate, formatDateHeure, nomComplet } from '../utils/format'
+import { formatDate, formatDateHeure, nomComplet, versInputDate } from '../utils/format'
 
 const TAILLE = 20
 
@@ -23,6 +23,22 @@ export default function Notifications() {
   const marquerLue = async (n) => {
     try { await notificationsService.marquerLue(n.id_notification); recharger() }
     catch (e) { toast.erreur(messageErreur(e)) }
+  }
+
+  // Suite donnée à une notification : le justificatif est reçu, l'absence passe
+  // en justifiée et l'étudiant sort de la liste « à surveiller ».
+  const justifier = async (n) => {
+    setEnCours(true)
+    try {
+      await absencesService.modifier(n.id_absence, {
+        date_absence: versInputDate(n.date_absence),
+        nb_heures: n.nb_heures,
+        justifie: true,
+      })
+      if (n.statut !== 'lue') await notificationsService.marquerLue(n.id_notification)
+      toast.succes('Absence justifiée.')
+      recharger()
+    } catch (e) { toast.erreur(messageErreur(e)) } finally { setEnCours(false) }
   }
   const toutMarquer = async () => {
     setEnCours(true)
@@ -50,6 +66,7 @@ export default function Notifications() {
                   <Link to={`/etudiants/${n.id_etudiant}`} className="et-lien">{nomComplet(n)}</Link>
                   <span className="text-secondary small">{n.cne}</span>
                   <Badge type={n.statut === 'lue' ? 'neutre' : 'info'}>{n.statut === 'lue' ? 'Lue' : 'Non lue'}</Badge>
+                  {n.justifie ? <Badge type="succes">Absence justifiée</Badge> : <Badge type="erreur">À traiter</Badge>}
                 </div>
                 <div className="small mt-1">{n.message}</div>
                 <div className="text-secondary" style={{ fontSize: '.75rem' }}>
@@ -58,6 +75,11 @@ export default function Notifications() {
               </div>
               <div className="d-flex gap-1 align-items-start">
                 <Link to={`/etudiants/${n.id_etudiant}`} className="btn btn-light btn-icone" title="Ouvrir la fiche"><ExternalLink size={16} /></Link>
+                {!n.justifie && (
+                  <button className="btn btn-light btn-icone text-primary" title="Justificatif reçu : justifier l'absence" onClick={() => justifier(n)} disabled={enCours}>
+                    <FileCheck size={16} />
+                  </button>
+                )}
                 {n.statut !== 'lue' && <button className="btn btn-light btn-icone text-success" title="Marquer comme lue" onClick={() => marquerLue(n)}><Check size={16} /></button>}
               </div>
             </div>

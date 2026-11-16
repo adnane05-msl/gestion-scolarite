@@ -58,7 +58,7 @@ export default function Inscriptions() {
 
   return (
     <>
-      <EntetePage titre="Inscriptions" description="Inscription des étudiants dans les filières par année universitaire. Un étudiant ne peut être inscrit qu'une fois par filière et par année."
+      <EntetePage titre="Inscriptions" description="Inscription des étudiants dans les filières par année universitaire."
         actions={<button className="btn btn-primary d-flex align-items-center gap-2" onClick={() => setModal(true)}><Plus size={16} /> Nouvelle inscription</button>} />
 
       <div className="et-carte p-0">

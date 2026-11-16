@@ -10,7 +10,10 @@ def lister():
         query(
             """
             SELECT x.id_examen, x.date_examen, m.id_module, m.nom_module, m.semestre,
-                   (SELECT COUNT(*) FROM NOTE n WHERE n.id_examen = x.id_examen) AS nb_notes
+                   (SELECT COUNT(*) FROM NOTE n WHERE n.id_examen = x.id_examen) AS nb_notes,
+                   (SELECT COUNT(DISTINCT i.id_etudiant)
+                    FROM CONTENIR c JOIN INSCRIPTION i ON i.id_filiere = c.id_filiere
+                    WHERE c.id_module = x.id_module) AS nb_concernes
             FROM EXAMEN x JOIN MODULE m ON m.id_module = x.id_module
             ORDER BY x.date_examen DESC, x.id_examen DESC
             """

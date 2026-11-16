@@ -24,8 +24,14 @@ def lister():
     conditions, params = [], []
     if recherche:
         motif = f"%{recherche}%"
-        conditions.append("(e.nom LIKE %s OR e.prenom LIKE %s OR e.cne LIKE %s)")
-        params += [motif, motif, motif]
+        # CONCAT permet de retrouver un etudiant a partir de son nom complet,
+        # saisi dans un sens ou dans l'autre ("Bilal Berrada" ou "Berrada Bilal").
+        conditions.append(
+            "(e.nom LIKE %s OR e.prenom LIKE %s OR e.cne LIKE %s"
+            " OR CONCAT(e.prenom, ' ', e.nom) LIKE %s"
+            " OR CONCAT(e.nom, ' ', e.prenom) LIKE %s)"
+        )
+        params += [motif] * 5
     if id_filiere:
         conditions.append("f.id_filiere = %s")
         params.append(id_filiere)
@@ -56,9 +62,11 @@ def tous_minimal():
             """
             SELECT id_etudiant, nom, prenom, cne FROM ETUDIANT
             WHERE nom LIKE %s OR prenom LIKE %s OR cne LIKE %s
+               OR CONCAT(prenom, ' ', nom) LIKE %s
+               OR CONCAT(nom, ' ', prenom) LIKE %s
             ORDER BY nom, prenom LIMIT 30
             """,
-            (motif, motif, motif),
+            (motif,) * 5,
         )
     )
 
@@ -122,7 +130,8 @@ def fiche(id_etudiant):
 
     notifications = query(
         """
-        SELECT n.id_notification, n.message, n.date_notification, n.statut
+        SELECT n.id_notification, n.message, n.date_notification, n.statut,
+               a.id_absence, a.date_absence, a.nb_heures, a.justifie
         FROM NOTIFICATION n JOIN ABSENCE a ON a.id_absence = n.id_absence
         WHERE a.id_etudiant = %s
         ORDER BY n.date_notification DESC

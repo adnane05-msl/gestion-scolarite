@@ -17,10 +17,12 @@ def lister():
         LEFT JOIN ENSEIGNER e ON e.id_enseignant = en.id_enseignant
         LEFT JOIN MODULE m    ON m.id_module     = e.id_module
         WHERE en.nom LIKE %s OR en.prenom LIKE %s OR en.specialite LIKE %s
+           OR CONCAT(en.prenom, ' ', en.nom) LIKE %s
+           OR CONCAT(en.nom, ' ', en.prenom) LIKE %s
         GROUP BY en.id_enseignant
         ORDER BY en.nom, en.prenom
         """,
-        (motif, motif, motif),
+        (motif,) * 5,
     )
     for l in lignes:
         l["ids_modules"] = [int(x) for x in l["ids_modules"].split(",")] if l["ids_modules"] else []

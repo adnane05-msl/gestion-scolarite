@@ -19,8 +19,12 @@ def lister():
         params.append(request.args["etudiant"])
     if request.args.get("recherche"):
         motif = f"%{request.args['recherche'].strip()}%"
-        conditions.append("(e.nom LIKE %s OR e.prenom LIKE %s OR e.cne LIKE %s)")
-        params += [motif, motif, motif]
+        conditions.append(
+            "(e.nom LIKE %s OR e.prenom LIKE %s OR e.cne LIKE %s"
+            " OR CONCAT(e.prenom, ' ', e.nom) LIKE %s"
+            " OR CONCAT(e.nom, ' ', e.prenom) LIKE %s)"
+        )
+        params += [motif] * 5
     where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
 
     base = """

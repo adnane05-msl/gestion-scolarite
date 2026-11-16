@@ -56,7 +56,7 @@ export default function Filieres() {
 
   return (
     <>
-      <EntetePage titre="Filières" description="Filières de l'établissement et modules qu'elles contiennent (table CONTENIR)."
+      <EntetePage titre="Filières" description="Filières de l'établissement et modules qu'elles contiennent."
         actions={<button className="btn btn-primary d-flex align-items-center gap-2" onClick={ouvrirAjout}><Plus size={16} /> Ajouter une filière</button>} />
 
       {chargement ? <Chargement /> : erreur ? <Erreur message={erreur} onReessayer={recharger} /> : donnees.length === 0 ? <div className="et-carte"><TableauVide texte="Aucune filière." /></div> : (

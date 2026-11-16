@@ -76,11 +76,12 @@ export default function Absences() {
 
       {alertes && alertes.etudiants.length > 0 && (
         <div className="et-carte et-alerte-rouge mb-3">
-          <div className="d-flex align-items-center gap-2 mb-2 text-danger fw-semibold"><AlertTriangle size={18} /> Étudiants à surveiller — seuil : {alertes.seuil} h cumulées</div>
+          <div className="d-flex align-items-center gap-2 mb-1 text-danger fw-semibold"><AlertTriangle size={18} /> Étudiants à surveiller — au moins {alertes.seuil} h d'absence non justifiée</div>
+          <p className="small text-secondary mb-2">Un étudiant sort de cette liste dès que ses absences sont justifiées.</p>
           <div className="d-flex flex-wrap gap-2">
             {alertes.etudiants.map((e) => (
               <Link key={e.id_etudiant} to={`/etudiants/${e.id_etudiant}`} className="badge rounded-pill et-badge-douce-erreur text-decoration-none">
-                {nomComplet(e)} · {Number(e.total_heures)} h
+                {nomComplet(e)} · {Number(e.heures_non_justifiees)} h
               </Link>
             ))}
           </div>

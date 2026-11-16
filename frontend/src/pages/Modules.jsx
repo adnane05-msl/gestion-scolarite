@@ -56,7 +56,7 @@ export default function Modules() {
 
   return (
     <>
-      <EntetePage titre="Modules" description="Catalogue des modules, répartition par filière (CONTENIR) et par enseignant (ENSEIGNER)."
+      <EntetePage titre="Modules" description="Catalogue des modules, répartition par filière et par enseignant."
         actions={<button className="btn btn-primary d-flex align-items-center gap-2" onClick={ouvrirAjout}><Plus size={16} /> Ajouter un module</button>} />
 
       <div className="et-carte p-0">

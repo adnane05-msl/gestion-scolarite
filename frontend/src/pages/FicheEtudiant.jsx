@@ -1,10 +1,12 @@
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Mail, Hash, BookOpen, FileText, CalendarX, Bell } from 'lucide-react'
+import { ArrowLeft, Mail, Hash, BookOpen, FileText, CalendarX, Bell, FileCheck, Check } from 'lucide-react'
 import useFetch from '../hooks/useFetch'
-import { etudiantsService } from '../services/ressources'
+import useToast from '../hooks/useToast'
+import { absencesService, etudiantsService, notificationsService } from '../services/ressources'
+import { messageErreur } from '../services/api'
 import CarteStat from '../components/CarteStat.jsx'
 import { Chargement, Erreur, TableauVide, Badge } from '../components/Etats.jsx'
-import { anneeUniversitaire, formatDate, formatDateHeure, formatNote, nomComplet } from '../utils/format'
+import { anneeUniversitaire, formatDate, formatDateHeure, formatNote, nomComplet, versInputDate } from '../utils/format'
 
 function Bloc({ titre, children }) {
   return (
@@ -17,13 +19,34 @@ function Bloc({ titre, children }) {
 
 export default function FicheEtudiant() {
   const { id } = useParams()
+  const toast = useToast()
   const { donnees, chargement, erreur, recharger } = useFetch(() => etudiantsService.fiche(id), [id])
+
+  const justifier = async (n) => {
+    try {
+      await absencesService.modifier(n.id_absence, {
+        date_absence: versInputDate(n.date_absence),
+        nb_heures: n.nb_heures,
+        justifie: true,
+      })
+      if (n.statut !== 'lue') await notificationsService.marquerLue(n.id_notification)
+      toast.succes('Absence justifiée.')
+      recharger()
+    } catch (e) { toast.erreur(messageErreur(e)) }
+  }
+
+  const marquerLue = async (n) => {
+    try { await notificationsService.marquerLue(n.id_notification); recharger() }
+    catch (e) { toast.erreur(messageErreur(e)) }
+  }
 
   if (chargement) return <Chargement texte="Chargement de la fiche…" />
   if (erreur) return <Erreur message={erreur} onReessayer={recharger} />
 
   const { etudiant, inscriptions, modules, notes, moyenne, absences, notifications } = donnees
   const filiereActuelle = inscriptions[0]
+  const notificationsNonLues = notifications.filter((n) => n.statut !== 'lue').length
+  const heuresNonJustifiees = Number(absences.non_justifiees)
 
   return (
     <>
@@ -46,8 +69,8 @@ export default function FicheEtudiant() {
       <div className="row g-3 mb-3">
         <div className="col-6 col-lg-3"><CarteStat icone={FileText} libelle="Moyenne générale" valeur={formatNote(moyenne)} couleur="#2563eb" /></div>
         <div className="col-6 col-lg-3"><CarteStat icone={BookOpen} libelle="Notes enregistrées" valeur={notes.length} couleur="#16a34a" /></div>
-        <div className="col-6 col-lg-3"><CarteStat icone={CalendarX} libelle="Heures d'absence" valeur={Number(absences.total)} couleur={Number(absences.total) >= 20 ? '#dc2626' : '#f59e0b'} /></div>
-        <div className="col-6 col-lg-3"><CarteStat icone={Bell} libelle="Notifications" valeur={notifications.length} couleur="#7c3aed" /></div>
+        <div className="col-6 col-lg-3"><CarteStat icone={CalendarX} libelle={`Heures d'absence (dont ${heuresNonJustifiees} non justifiées)`} valeur={Number(absences.total)} couleur={heuresNonJustifiees >= 20 ? '#dc2626' : '#f59e0b'} /></div>
+        <div className="col-6 col-lg-3"><CarteStat icone={Bell} libelle={`Notifications non lues (${notifications.length} au total)`} valeur={notificationsNonLues} couleur="#7c3aed" /></div>
       </div>
 
       <div className="row g-3">
@@ -97,8 +120,23 @@ export default function FicheEtudiant() {
                 <div className="flex-grow-1 small">
                   <div>{n.message}</div>
                   <div className="text-secondary" style={{ fontSize: '.75rem' }}>{formatDateHeure(n.date_notification)}</div>
+                  <div className="mt-1 d-flex gap-1 flex-wrap align-items-center">
+                    <Badge type={n.statut === 'lue' ? 'neutre' : 'info'}>{n.statut === 'lue' ? 'Lue' : 'Non lue'}</Badge>
+                    {n.justifie ? <Badge type="succes">Absence justifiée</Badge> : <Badge type="erreur">À traiter</Badge>}
+                  </div>
                 </div>
-                <Badge type={n.statut === 'lue' ? 'neutre' : 'info'}>{n.statut === 'lue' ? 'Lue' : 'Non lue'}</Badge>
+                <div className="d-flex gap-1 align-items-start">
+                  {!n.justifie && (
+                    <button className="btn btn-light btn-icone text-primary" title="Justificatif reçu : justifier l'absence" onClick={() => justifier(n)}>
+                      <FileCheck size={16} />
+                    </button>
+                  )}
+                  {n.statut !== 'lue' && (
+                    <button className="btn btn-light btn-icone text-success" title="Marquer comme lue" onClick={() => marquerLue(n)}>
+                      <Check size={16} />
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </Bloc>

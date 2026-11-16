@@ -50,7 +50,7 @@ function OngletExamens({ examens, chargement, erreur, recharger }) {
         {chargement ? <Chargement /> : erreur ? <div className="p-3"><Erreur message={erreur} onReessayer={recharger} /></div> : examens.length === 0 ? <TableauVide texte="Aucun examen." /> : (
           <div className="et-tableau-conteneur">
             <table className="table et-tableau">
-              <thead><tr><th>#</th><th>Module</th><th>Semestre</th><th>Date</th><th>Notes saisies</th><th className="text-end">Actions</th></tr></thead>
+              <thead><tr><th>#</th><th>Module</th><th>Semestre</th><th>Date</th><th>Avancement de la saisie</th><th className="text-end">Actions</th></tr></thead>
               <tbody>
                 {examens.map((x) => (
                   <tr key={x.id_examen}>
@@ -58,7 +58,14 @@ function OngletExamens({ examens, chargement, erreur, recharger }) {
                     <td className="fw-medium">{x.nom_module}</td>
                     <td><Badge type="neutre">S{x.semestre}</Badge></td>
                     <td>{formatDate(x.date_examen)}</td>
-                    <td>{x.nb_notes}</td>
+                    <td>
+                      {x.nb_notes} / {x.nb_concernes} étudiants{' '}
+                      {x.nb_concernes > 0 && x.nb_notes >= x.nb_concernes
+                        ? <Badge type="succes">Terminé</Badge>
+                        : x.nb_notes === 0
+                          ? <Badge type="neutre">À saisir</Badge>
+                          : <Badge type="avert">En cours</Badge>}
+                    </td>
                     <td className="text-end text-nowrap">
                       <button className="btn btn-light btn-icone me-1" title="Modifier" onClick={() => ouvrirEdition(x)}><Pencil size={16} /></button>
                       <button className="btn btn-light btn-icone text-danger" title="Supprimer" onClick={() => setASupprimer(x)}><Trash2 size={16} /></button>

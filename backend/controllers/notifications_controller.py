@@ -21,7 +21,7 @@ def lister():
     lignes = query(
         f"""
         SELECT n.id_notification, n.message, n.date_notification, n.statut,
-               a.id_absence, a.date_absence, a.nb_heures,
+               a.id_absence, a.date_absence, a.nb_heures, a.justifie,
                e.id_etudiant, e.nom, e.prenom, e.cne
         {base} {condition}
         ORDER BY n.date_notification DESC, n.id_notification DESC

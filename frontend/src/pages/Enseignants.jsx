@@ -55,7 +55,7 @@ export default function Enseignants() {
     <>
       <EntetePage
         titre="Enseignants"
-        description="Corps enseignant et affectation aux modules (table ENSEIGNER)."
+        description="Corps enseignant et affectation aux modules."
         actions={<button className="btn btn-primary d-flex align-items-center gap-2" onClick={ouvrirAjout}><Plus size={16} /> Ajouter un enseignant</button>}
       />
 

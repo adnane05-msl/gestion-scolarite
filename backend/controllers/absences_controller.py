@@ -13,8 +13,12 @@ def lister():
         params.append(request.args["etudiant"])
     if request.args.get("recherche"):
         motif = f"%{request.args['recherche'].strip()}%"
-        conditions.append("(e.nom LIKE %s OR e.prenom LIKE %s OR e.cne LIKE %s)")
-        params += [motif, motif, motif]
+        conditions.append(
+            "(e.nom LIKE %s OR e.prenom LIKE %s OR e.cne LIKE %s"
+            " OR CONCAT(e.prenom, ' ', e.nom) LIKE %s"
+            " OR CONCAT(e.nom, ' ', e.prenom) LIKE %s)"
+        )
+        params += [motif] * 5
     if request.args.get("debut"):
         conditions.append("a.date_absence >= %s")
         params.append(date_valide(request.args["debut"], "La date de début"))
@@ -101,14 +105,20 @@ def totaux():
 
 
 def alertes():
-    """Étudiants dépassant le seuil d'heures cumulées (alerte visuelle, distincte des notifications)."""
+    """Étudiants dépassant le seuil d'heures NON JUSTIFIEES.
+
+    Alerte visuelle, distincte des notifications : un étudiant en sort dès que
+    ses absences sont justifiées ou supprimées.
+    """
     lignes = query(
         """
-        SELECT e.id_etudiant, e.nom, e.prenom, e.cne, SUM(a.nb_heures) AS total_heures
+        SELECT e.id_etudiant, e.nom, e.prenom, e.cne,
+               SUM(a.nb_heures) AS heures_non_justifiees
         FROM ABSENCE a JOIN ETUDIANT e ON e.id_etudiant = a.id_etudiant
+        WHERE a.justifie = FALSE
         GROUP BY e.id_etudiant, e.nom, e.prenom, e.cne
         HAVING SUM(a.nb_heures) >= %s
-        ORDER BY total_heures DESC
+        ORDER BY heures_non_justifiees DESC
         """,
         (SEUIL_ALERTE_ABSENCE,),
     )
