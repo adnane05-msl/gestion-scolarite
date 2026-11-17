@@ -71,7 +71,7 @@ export default function Absences() {
 
   return (
     <>
-      <EntetePage titre="Absences" description="Suivi de l'assiduité. Chaque absence non justifiée déclenche automatiquement une notification (trigger MySQL)."
+      <EntetePage titre="Absences" description="Suivi de l'assiduité. Chaque absence non justifiée déclenche automatiquement une notification."
         actions={<button className="btn btn-primary d-flex align-items-center gap-2" onClick={ouvrirAjout}><Plus size={16} /> Ajouter une absence</button>} />
 
       {alertes && alertes.etudiants.length > 0 && (

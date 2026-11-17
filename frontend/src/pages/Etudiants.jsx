@@ -64,11 +64,24 @@ export default function Etudiants() {
     }
   }
 
+  // Avant de proposer la suppression, on demande au serveur ce qui est rattaché
+  // à l'étudiant, pour l'annoncer au lieu de laisser la clé étrangère refuser.
+  const demanderSuppression = async (etudiant) => {
+    setASupprimer({ ...etudiant, dep: null })
+    try {
+      setASupprimer({ ...etudiant, dep: await etudiantsService.dependances(etudiant.id_etudiant) })
+    } catch (e) {
+      toast.erreur(messageErreur(e))
+      setASupprimer(null)
+    }
+  }
+
   const supprimer = async () => {
     setEnCours(true)
     try {
-      await etudiantsService.supprimer(aSupprimer.id_etudiant)
-      toast.succes('Étudiant supprimé.')
+      const avecDonnees = (aSupprimer.dep?.total ?? 0) > 0
+      const reponse = await etudiantsService.supprimer(aSupprimer.id_etudiant, avecDonnees)
+      toast.succes(reponse.message)
       setASupprimer(null)
       recharger()
     } catch (e) {
@@ -117,7 +130,7 @@ export default function Etudiants() {
                     <td className="text-end text-nowrap">
                       <Link to={`/etudiants/${e.id_etudiant}`} className="btn btn-light btn-icone me-1" title="Fiche"><Eye size={16} /></Link>
                       <button className="btn btn-light btn-icone me-1" title="Modifier" onClick={() => ouvrirEdition(e)}><Pencil size={16} /></button>
-                      <button className="btn btn-light btn-icone text-danger" title="Supprimer" onClick={() => setASupprimer(e)}><Trash2 size={16} /></button>
+                      <button className="btn btn-light btn-icone text-danger" title="Supprimer" onClick={() => demanderSuppression(e)}><Trash2 size={16} /></button>
                     </td>
                   </tr>
                 ))}
@@ -166,10 +179,36 @@ export default function Etudiants() {
       <Confirmation
         ouvert={!!aSupprimer}
         titre="Supprimer l'étudiant"
-        message={`Supprimer ${aSupprimer?.prenom} ${aSupprimer?.nom} (${aSupprimer?.cne}) ? La suppression sera refusée s'il possède des inscriptions, notes ou absences.`}
+        message={aSupprimer && (
+          <>
+            <p className="mb-2">
+              Supprimer <strong>{aSupprimer.prenom} {aSupprimer.nom}</strong> ({aSupprimer.cne}) ?
+            </p>
+            {!aSupprimer.dep ? (
+              <p className="mb-0 small text-secondary">Vérification des données liées…</p>
+            ) : aSupprimer.dep.total === 0 ? (
+              <p className="mb-0 small text-secondary">
+                Aucune donnée liée à cet étudiant. La suppression est définitive.
+              </p>
+            ) : (
+              <>
+                <p className="mb-1 small">
+                  Les données suivantes lui sont rattachées et seront supprimées avec lui :
+                </p>
+                <ul className="small mb-0">
+                  {aSupprimer.dep.inscriptions > 0 && <li>{aSupprimer.dep.inscriptions} inscription(s)</li>}
+                  {aSupprimer.dep.notes > 0 && <li>{aSupprimer.dep.notes} note(s)</li>}
+                  {aSupprimer.dep.absences > 0 && <li>{aSupprimer.dep.absences} absence(s)</li>}
+                  {aSupprimer.dep.notifications > 0 && <li>{aSupprimer.dep.notifications} notification(s)</li>}
+                </ul>
+              </>
+            )}
+          </>
+        )}
+        libelleConfirmer={aSupprimer?.dep?.total > 0 ? 'Supprimer avec ses données' : 'Supprimer'}
         onConfirmer={supprimer}
         onAnnuler={() => setASupprimer(null)}
-        enCours={enCours}
+        enCours={enCours || (!!aSupprimer && !aSupprimer.dep)}
       />
     </>
   )

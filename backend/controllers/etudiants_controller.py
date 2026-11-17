@@ -1,6 +1,6 @@
 from flask import jsonify, request
 
-from config.db import execute, query
+from config.db import execute, execute_many, query
 from middlewares.erreurs import ErreurApplicative
 from services.validation import champs_obligatoires, pagination
 
@@ -172,9 +172,53 @@ def modifier(id_etudiant):
     return jsonify(message="Étudiant modifié.")
 
 
-def supprimer(id_etudiant):
-    # Pas de suppression en cascade : la contrainte FK (erreur 1451) bloque si des données existent.
-    _, nb = execute("DELETE FROM ETUDIANT WHERE id_etudiant = %s", (id_etudiant,))
-    if nb == 0:
+def dependances(id_etudiant):
+    """Compte les données liées qui empêchent la suppression de l'étudiant."""
+    if not query("SELECT 1 FROM ETUDIANT WHERE id_etudiant = %s", (id_etudiant,), one=True):
         raise ErreurApplicative("Étudiant introuvable.", 404)
-    return jsonify(message="Étudiant supprimé.")
+
+    def compte(sql):
+        return query(sql, (id_etudiant,), one=True)["n"]
+
+    detail = {
+        "inscriptions": compte("SELECT COUNT(*) AS n FROM INSCRIPTION WHERE id_etudiant = %s"),
+        "notes": compte("SELECT COUNT(*) AS n FROM NOTE WHERE id_etudiant = %s"),
+        "absences": compte("SELECT COUNT(*) AS n FROM ABSENCE WHERE id_etudiant = %s"),
+        "notifications": compte(
+            "SELECT COUNT(*) AS n FROM NOTIFICATION no "
+            "JOIN ABSENCE a ON a.id_absence = no.id_absence WHERE a.id_etudiant = %s"
+        ),
+    }
+    detail["total"] = sum(detail.values())
+    return jsonify(detail)
+
+
+def supprimer(id_etudiant):
+    """Supprime un étudiant.
+
+    Par défaut la contrainte de clé étrangère bloque (erreur 1451) si des données
+    liées existent. Avec ?avec_donnees=1, l'utilisateur a confirmé explicitement
+    la suppression des lignes dépendantes : elles sont retirées dans l'ordre
+    inverse des dépendances, en une seule transaction.
+    """
+    if request.args.get("avec_donnees") != "1":
+        _, nb = execute("DELETE FROM ETUDIANT WHERE id_etudiant = %s", (id_etudiant,))
+        if nb == 0:
+            raise ErreurApplicative("Étudiant introuvable.", 404)
+        return jsonify(message="Étudiant supprimé.")
+
+    if not query("SELECT 1 FROM ETUDIANT WHERE id_etudiant = %s", (id_etudiant,), one=True):
+        raise ErreurApplicative("Étudiant introuvable.", 404)
+
+    execute_many([
+        (
+            "DELETE FROM NOTIFICATION WHERE id_absence IN "
+            "(SELECT id_absence FROM ABSENCE WHERE id_etudiant = %s)",
+            (id_etudiant,),
+        ),
+        ("DELETE FROM ABSENCE WHERE id_etudiant = %s", (id_etudiant,)),
+        ("DELETE FROM NOTE WHERE id_etudiant = %s", (id_etudiant,)),
+        ("DELETE FROM INSCRIPTION WHERE id_etudiant = %s", (id_etudiant,)),
+        ("DELETE FROM ETUDIANT WHERE id_etudiant = %s", (id_etudiant,)),
+    ])
+    return jsonify(message="Étudiant et données associées supprimés.")

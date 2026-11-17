@@ -48,7 +48,7 @@ export default function Notifications() {
 
   return (
     <>
-      <EntetePage titre="Notifications" description="Alertes créées automatiquement par le trigger MySQL à chaque absence non justifiée."
+      <EntetePage titre="Notifications" description="Alertes créées automatiquement à chaque absence non justifiée."
         actions={<button className="btn btn-outline-primary d-flex align-items-center gap-2" onClick={toutMarquer} disabled={enCours}><CheckCheck size={16} /> Tout marquer comme lu</button>} />
 
       <div className="et-carte p-0">

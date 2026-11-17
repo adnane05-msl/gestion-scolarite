@@ -10,9 +10,11 @@ export const etudiantsService = {
   lister: (params) => d(api.get('/etudiants', { params })),
   minimal: (recherche = '') => d(api.get('/etudiants/minimal', { params: { recherche } })),
   fiche: (id) => d(api.get(`/etudiants/${id}`)),
+  dependances: (id) => d(api.get(`/etudiants/${id}/dependances`)),
   creer: (donnees) => d(api.post('/etudiants', donnees)),
   modifier: (id, donnees) => d(api.put(`/etudiants/${id}`, donnees)),
-  supprimer: (id) => d(api.delete(`/etudiants/${id}`)),
+  supprimer: (id, avecDonnees = false) =>
+    d(api.delete(`/etudiants/${id}`, { params: avecDonnees ? { avec_donnees: 1 } : {} })),
 }
 
 export const enseignantsService = {
